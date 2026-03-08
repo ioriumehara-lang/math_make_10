@@ -3,132 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>10パズル・メーカー</title>
+    <title>なんでもテンパズル</title>
     <style>
-        body {
-            font-family: sans-serif;
-            background-color: #f0f4f8;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 350px;
-        }
-        h1 { color: #333; font-size: 1.5rem; margin-bottom: 20px; }
-        .input-group {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 25px;
-        }
-        input {
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
-            text-align: center;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            outline: none;
-        }
-        input:focus { border-color: #4a90e2; }
-        button {
-            width: 100%;
-            padding: 15px;
-            background-color: #4a90e2;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        button:hover { background-color: #357abd; }
-        #result {
-            margin-top: 25px;
-            font-size: 22px;
-            font-weight: bold;
-            color: #2c3e50;
-            min-height: 30px;
-        }
-        .error { color: #e74c3c; font-size: 16px; }
+        body { font-family: sans-serif; background: #fdf6e3; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 500px; text-align: center; }
+        input { width: 100%; padding: 12px; font-size: 1.2rem; border: 2px solid #eee; border-radius: 8px; margin-bottom: 1rem; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #cb4b16; color: white; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; }
+        #result { margin-top: 1.5rem; font-size: 1.3rem; font-weight: bold; color: #586e75; word-break: break-all; }
+        .hint { font-size: 0.8rem; color: #93a1a1; margin-bottom: 1rem; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>10パズル解答機</h1>
-    <div class="input-group">
-        <input type="number" id="n1" min="1" max="9">
-        <input type="number" id="n2" min="1" max="9">
-        <input type="number" id="n3" min="1" max="9">
-        <input type="number" id="n4" min="1" max="9">
-    </div>
-    <button onclick="solve()">答えを計算する</button>
-    <div id="result">ここに式が出ます</div>
+    <h1>なんでも10パズル</h1>
+    <p class="hint">数字をスペースかカンマで区切って入力してね<br>(例: 1 2 3 4 5)</p>
+    <input type="text" id="numInput" placeholder="例: 1, 2, 5">
+    <button onclick="solveAny()">10を作れるかチェック！</button>
+    <div id="result"></div>
 </div>
 
 <script>
-function solve() {
-    const ids = ['n1', 'n2', 'n3', 'n4'];
-    const nums = ids.map(id => parseFloat(document.getElementById(id).value));
-    const resultElement = document.getElementById('result');
+function solveAny() {
+    const input = document.getElementById('numInput').value;
+    const nums = input.split(/[\s,]+/).filter(x => x !== "").map(Number);
+    const resultDiv = document.getElementById('result');
 
-    if (nums.some(isNaN)) {
-        resultElement.innerHTML = '<span class="error">4つの数字を入れてね</span>';
+    if (nums.length < 2) {
+        resultDiv.innerText = "数字を2つ以上入れてね";
         return;
     }
 
-    const ops = ['+', '-', '*', '/'];
-    const perms = getPermutations(nums);
+    const solution = findSolution(nums, 10);
+    if (solution) {
+        resultDiv.innerText = "答え: " + solution.replace(/\*/g, '×').replace(/\//g, '÷') + " = 10";
+    } else {
+        resultDiv.innerText = "10にできませんでした…";
+    }
+}
 
-    for (let p of perms) {
-        for (let op1 of ops) {
-            for (let op2 of ops) {
-                for (let op3 of ops) {
-                    const patterns = [
-                        `(((${p[0]}${op1}${p[1]})${op2}${p[2]})${op3}${p[3]})`,
-                        `((${p[0]}${op1}(${p[1]}${op2}${p[2]}))${op3}${p[3]})`,
-                        `(${p[0]}${op1}((${p[1]}${op2}${p[2]})${op3}${p[3]}))`,
-                        `(${p[0]}${op1}(${p[1]}${op2}(${p[2]}${op3}${p[3]})))`,
-                        `(${p[0]}${op1}${p[1]})${op2}(${p[2]}${op3}${p[3]})`
-                    ];
+// 再帰的にすべての組み合わせを試す関数
+function findSolution(nums, target) {
+    if (nums.length === 1) {
+        return Math.abs(nums[0] - target) < 0.0001 ? nums[0].toString() : null;
+    }
 
-                    for (let exp of patterns) {
-                        try {
-                            if (Math.abs(eval(exp) - 10) < 0.0001) {
-                                let display = exp.replace(/\*/g, '×').replace(/\//g, '÷');
-                                resultElement.innerText = display + " = 10";
-                                return;
-                            }
-                        } catch (e) {}
-                    }
+    for (let i = 0; i < nums.length; i++) {
+        for (let j = 0; j < nums.length; j++) {
+            if (i === j) continue;
+
+            const remaining = nums.filter((_, idx) => idx !== i && idx !== j);
+            const a = nums[i];
+            const b = nums[j];
+            const aStr = nums.length === originalLength ? a : `(${a})`; // 初回以外は括弧をつける簡易処理
+            
+            const ops = [
+                { val: a + b, str: `(${a}+${b})` },
+                { val: a - b, str: `(${a}-${b})` },
+                { val: a * b, str: `(${a}*${b})` },
+                { val: b !== 0 ? a / b : null, str: `(${a}/${b})` }
+            ];
+
+            for (let op of ops) {
+                if (op.val === null) continue;
+                const res = findSolution([op.val, ...remaining], target);
+                if (res) {
+                    // 数式を再構築するために、使った数字の履歴を追う（簡易版）
+                    return buildFormula(nums, i, j, op.str, remaining, target);
                 }
             }
         }
     }
-    resultElement.innerHTML = '<span class="error">10になりませんでした</span>';
+    return null;
 }
 
-function getPermutations(arr) {
-    if (arr.length <= 1) return [arr];
-    let result = [];
-    for (let i = 0; i < arr.length; i++) {
-        let first = arr[i];
-        let rest = arr.slice(0, i).concat(arr.slice(i + 1));
-        let innerPerms = getPermutations(rest);
-        for (let j = 0; j < innerPerms.length; j++) {
-            result.push([first, ...innerPerms[j]]);
+// 複雑な再帰用：数式を正しく組み立てるためのロジック
+function findSolution(numbers, target) {
+    let current = numbers.map(n => ({ val: n, txt: n.toString() }));
+
+    function solve(arr) {
+        if (arr.length === 1) {
+            return Math.abs(arr[0].val - target) < 0.0001 ? arr[0].txt : null;
         }
+
+        for (let i = 0; i < arr.length; i++) {
+            for (let j = 0; j < arr.length; j++) {
+                if (i === j) continue;
+
+                const a = arr[i];
+                const b = arr[j];
+                const nextArr = arr.filter((_, idx) => idx !== i && idx !== j);
+
+                const possibilities = [
+                    { val: a.val + b.val, txt: `(${a.txt}+${b.txt})` },
+                    { val: a.val - b.val, txt: `(${a.txt}-${b.txt})` },
+                    { val: a.val * b.val, txt: `(${a.txt}*${b.txt})` }
+                ];
+                if (Math.abs(b.val) > 0.0001) {
+                    possibilities.push({ val: a.val / b.val, txt: `(${a.txt}/${b.txt})` });
+                }
+
+                for (let p of possibilities) {
+                    const res = solve([...nextArr, p]);
+                    if (res) return res;
+                }
+            }
+        }
+        return null;
     }
-    return result;
+    return solve(current);
 }
+let originalLength = 0; 
 </script>
 
 </body>
