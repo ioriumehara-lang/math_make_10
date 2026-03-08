@@ -1,41 +1,135 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Math Make 10</title>
+    <title>10パズル・メーカー</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: sans-serif;
+            background-color: #f0f4f8;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
             margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        .container {
+        .card {
             background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
             text-align: center;
+            width: 350px;
         }
-        h1 {
-            color: #333;
-            margin: 0 0 20px 0;
+        h1 { color: #333; font-size: 1.5rem; margin-bottom: 20px; }
+        .input-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
         }
-        p {
-            color: #666;
-            margin: 10px 0;
+        input {
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            outline: none;
         }
+        input:focus { border-color: #4a90e2; }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover { background-color: #357abd; }
+        #result {
+            margin-top: 25px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #2c3e50;
+            min-height: 30px;
+        }
+        .error { color: #e74c3c; font-size: 16px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Math Make 10</h1>
-        <p>Welcome to Math Make 10!</p>
-        <p>This is a fun math game where you make the number 10.</p>
+
+<div class="card">
+    <h1>10パズル解答機</h1>
+    <div class="input-group">
+        <input type="number" id="n1" min="1" max="9">
+        <input type="number" id="n2" min="1" max="9">
+        <input type="number" id="n3" min="1" max="9">
+        <input type="number" id="n4" min="1" max="9">
     </div>
+    <button onclick="solve()">答えを計算する</button>
+    <div id="result">ここに式が出ます</div>
+</div>
+
+<script>
+function solve() {
+    const ids = ['n1', 'n2', 'n3', 'n4'];
+    const nums = ids.map(id => parseFloat(document.getElementById(id).value));
+    const resultElement = document.getElementById('result');
+
+    if (nums.some(isNaN)) {
+        resultElement.innerHTML = '<span class="error">4つの数字を入れてね</span>';
+        return;
+    }
+
+    const ops = ['+', '-', '*', '/'];
+    const perms = getPermutations(nums);
+
+    for (let p of perms) {
+        for (let op1 of ops) {
+            for (let op2 of ops) {
+                for (let op3 of ops) {
+                    const patterns = [
+                        `(((${p[0]}${op1}${p[1]})${op2}${p[2]})${op3}${p[3]})`,
+                        `((${p[0]}${op1}(${p[1]}${op2}${p[2]}))${op3}${p[3]})`,
+                        `(${p[0]}${op1}((${p[1]}${op2}${p[2]})${op3}${p[3]}))`,
+                        `(${p[0]}${op1}(${p[1]}${op2}(${p[2]}${op3}${p[3]})))`,
+                        `(${p[0]}${op1}${p[1]})${op2}(${p[2]}${op3}${p[3]})`
+                    ];
+
+                    for (let exp of patterns) {
+                        try {
+                            if (Math.abs(eval(exp) - 10) < 0.0001) {
+                                let display = exp.replace(/\*/g, '×').replace(/\//g, '÷');
+                                resultElement.innerText = display + " = 10";
+                                return;
+                            }
+                        } catch (e) {}
+                    }
+                }
+            }
+        }
+    }
+    resultElement.innerHTML = '<span class="error">10になりませんでした</span>';
+}
+
+function getPermutations(arr) {
+    if (arr.length <= 1) return [arr];
+    let result = [];
+    for (let i = 0; i < arr.length; i++) {
+        let first = arr[i];
+        let rest = arr.slice(0, i).concat(arr.slice(i + 1));
+        let innerPerms = getPermutations(rest);
+        for (let j = 0; j < innerPerms.length; j++) {
+            result.push([first, ...innerPerms[j]]);
+        }
+    }
+    return result;
+}
+</script>
+
 </body>
 </html>
